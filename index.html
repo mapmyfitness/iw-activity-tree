@@ -36,6 +36,7 @@
     <button id="collapse" type="button">Collapse all</button>
     <label class="chk"><input id="movedonly" type="checkbox"> Moved only</label>
     <button id="editmode" type="button" class="primary">Edit proposal</button>
+    <button id="addroot" type="button">+ New top-level</button>
     <button id="changes" type="button">Changes <span id="changecount" class="badge">0</span></button>
   </div>
 </header>
@@ -79,7 +80,8 @@
 
 <footer>
   <span class="legend"><i class="sw moved"></i> re-parented</span>
-  <span class="legend"><i class="sw from"></i> was here</span>
+  <span class="legend"><i class="sw ren"></i> renamed</span>
+  <span class="legend"><i class="sw new"></i> new category</span>
   <span class="legend"><i class="sw sel"></i> selected</span>
   <span class="src" id="srcline"></span>
 </footer>
@@ -105,6 +107,52 @@
       <button id="picker-reset" type="button">Revert to current parent</button>
     </div>
   </div>
+</div>
+
+<!-- Rename -->
+<div id="rename" class="modal" hidden>
+  <form id="rename-form" class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3 id="rename-title">Rename</h3>
+        <p id="rename-sub" class="modal-sub"></p>
+      </div>
+      <button id="rename-close" type="button" class="detail-close">&times;</button>
+    </div>
+    <input id="rename-name" type="text" placeholder="New display name" autocomplete="off" maxlength="120">
+    <div class="modal-note">
+      <label for="rename-why">Rationale (optional)</label>
+      <input id="rename-why" type="text" placeholder="Why should it be called this?">
+    </div>
+    <div class="modal-foot">
+      <button type="submit" class="primary">Save name</button>
+      <button id="rename-revert" type="button" class="danger">Revert to database name</button>
+    </div>
+  </form>
+</div>
+
+<!-- Add category -->
+<div id="add" class="modal" hidden>
+  <form id="add-form" class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3>Add a new category</h3>
+        <p id="add-sub" class="modal-sub"></p>
+      </div>
+      <button id="add-close" type="button" class="detail-close">&times;</button>
+    </div>
+    <input id="add-name" type="text" placeholder="Category name" autocomplete="off" maxlength="120">
+    <div class="modal-note">
+      <label for="add-why">Rationale (optional)</label>
+      <input id="add-why" type="text" placeholder="What is this for?">
+    </div>
+    <p class="modal-warn">This category doesn't exist in the database. It will be flagged
+       <b>NEW</b> everywhere and carries a placeholder ID until a real
+       <code>activity_type_id</code> is assigned at implementation.</p>
+    <div class="modal-foot">
+      <button type="submit" class="primary">Add category</button>
+    </div>
+  </form>
 </div>
 
 <!-- Changes drawer -->

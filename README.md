@@ -18,13 +18,32 @@ here.
 
 ## Editing
 
-Click **Edit proposal**, hover a row in the Proposed pane, and click **Move…** to choose a
-different parent. Edits are held in your own browser only — they are not shared with
-anyone and are not saved to this site. Use **Changes → Download proposed.json** to export
-them and send them on.
+Click **Edit proposal**, then hover any row in the Proposed pane. Three controls appear:
 
-A type can never be made its own parent or placed beneath its own descendant, so the tree
-cannot be made circular. Activity-type IDs are fixed: only the parent relationship changes.
+| Control | What it proposes |
+|---|---|
+| **Move…** | A different parent. Choose from a searchable list, make it top-level, or revert it to its database parent. |
+| **Rename…** | A different display name. The activity-type ID never changes. |
+| **+ Child** | A brand-new category underneath that type. **+ New top-level** in the header adds one at the root. |
+
+Every change is flagged in the Proposed pane and in the footer legend:
+
+- **orange** — re-parented
+- **purple + `RENAMED`** — renamed, with the database name shown struck through beside it
+- **green + `NEW`** — a category that does not exist in the database
+
+New categories carry a **placeholder ID** (shown as `NEW`, never a number) because real
+`activity_type_id`s are assigned by the database. The export marks each one
+`"placeholder id — assign a real ACTIVITY_TYPE_ID at implementation"`.
+
+Edits are held in your own browser only — not shared, not saved to this site. Use
+**Changes → Download proposed.json** to export and send them on. The Changes drawer groups
+everything into New categories / Renamed / Re-parented, with per-item undo.
+
+**Guards.** A type can't be its own parent or sit beneath its own descendant, so the tree
+can't be made circular. Names can't be empty. A new category can't be removed while it
+still has children. Existing activity-type IDs are never created, renumbered, or deleted —
+only `parent` and, where you ask for it, the display name.
 
 ## How the data is stored
 
