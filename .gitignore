@@ -1,0 +1,7 @@
+# Plaintext hierarchy data must never be committed to this public repo — only the
+# encrypted bundle ships. The plaintext lives in the internal product-ai outputs.
+data/current.json
+data/proposed.json
+data/extract.sql
+data/build_proposed.py
+ANALYSIS.md

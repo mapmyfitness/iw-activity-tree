@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MMF Activity-Type Hierarchy — MMF-3280</title>
+<!-- Inline so there's no favicon 404 in the console and no external request. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%234da3ff'/%3E%3Cpath d='M4 3v9h3M7 7h5M7 11h5M7 3h5' stroke='%230d1117' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="lock" class="lock" hidden>
+  <form id="lock-form" class="lock-box">
+    <h1>MapMyFitness Activity-Type Hierarchy</h1>
+    <p class="lock-sub">Current structure vs. proposed restructure, for MMF-3280.<br>
+       Enter the password you were sent to view it.</p>
+    <input id="lock-pw" type="password" placeholder="Password" autocomplete="current-password"
+           autofocus spellcheck="false">
+    <button id="lock-go" type="submit" class="primary">Unlock</button>
+    <p id="lock-msg" class="lock-msg"></p>
+  </form>
+</div>
+
+<header id="top">
+  <div class="titles">
+    <h1>MapMyFitness Activity-Type Hierarchy</h1>
+    <p class="sub">Current structure vs. proposed restructure &middot;
+       <a href="https://linear.app/outside/issue/MMF-3280/activity-type-hierarchy-workouts-dont-roll-up-to-the-category-users">MMF-3280</a>
+       &middot; <a href="ANALYSIS.md">analysis</a></p>
+  </div>
+  <div class="controls">
+    <input id="search" type="search" placeholder="Search name or ID&hellip;" autocomplete="off" spellcheck="false">
+    <button id="clear" type="button" title="Clear search">Clear</button>
+    <button id="expand" type="button">Expand all</button>
+    <button id="collapse" type="button">Collapse all</button>
+    <label class="chk"><input id="movedonly" type="checkbox"> Moved only</label>
+    <button id="editmode" type="button" class="primary">Edit proposal</button>
+    <button id="changes" type="button">Changes <span id="changecount" class="badge">0</span></button>
+  </div>
+</header>
+
+<div id="banner" class="banner" hidden></div>
+<div id="results" class="results" hidden></div>
+
+<div id="detail" class="detail" hidden>
+  <button id="detail-close" type="button" class="detail-close" title="Close">&times;</button>
+  <div class="detail-grid">
+    <div>
+      <h3>Current</h3>
+      <div class="crumb" id="crumb-current"></div>
+      <div class="kids" id="kids-current"></div>
+    </div>
+    <div>
+      <h3>Proposed</h3>
+      <div class="crumb" id="crumb-proposed"></div>
+      <div class="kids" id="kids-proposed"></div>
+    </div>
+  </div>
+  <div class="detail-meta" id="detail-meta"></div>
+</div>
+
+<main class="panes">
+  <section class="pane">
+    <div class="pane-head">
+      <h2>Current</h2>
+      <span class="stats" id="stats-current"></span>
+    </div>
+    <div class="tree" id="tree-current"></div>
+  </section>
+  <section class="pane">
+    <div class="pane-head">
+      <h2>Proposed</h2>
+      <span class="stats" id="stats-proposed"></span>
+    </div>
+    <div class="tree" id="tree-proposed"></div>
+  </section>
+</main>
+
+<footer>
+  <span class="legend"><i class="sw moved"></i> re-parented</span>
+  <span class="legend"><i class="sw from"></i> was here</span>
+  <span class="legend"><i class="sw sel"></i> selected</span>
+  <span class="src" id="srcline"></span>
+</footer>
+
+<!-- Parent picker -->
+<div id="picker" class="modal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3 id="picker-title">Choose a new parent</h3>
+        <p id="picker-sub" class="modal-sub"></p>
+      </div>
+      <button id="picker-close" type="button" class="detail-close">&times;</button>
+    </div>
+    <input id="picker-search" type="search" placeholder="Search for a parent by name or ID&hellip;" autocomplete="off">
+    <div class="modal-note">
+      <label for="picker-why">Rationale (optional, shown on hover and kept in the export)</label>
+      <input id="picker-why" type="text" placeholder="Why does this belong here?">
+    </div>
+    <div id="picker-list" class="picker-list"></div>
+    <div class="modal-foot">
+      <button id="picker-root" type="button">Make it a top-level root</button>
+      <button id="picker-reset" type="button">Revert to current parent</button>
+    </div>
+  </div>
+</div>
+
+<!-- Changes drawer -->
+<div id="drawer" class="modal" hidden>
+  <div class="modal-box wide">
+    <div class="modal-head">
+      <div>
+        <h3>Proposed changes</h3>
+        <p class="modal-sub" id="drawer-sub"></p>
+      </div>
+      <button id="drawer-close" type="button" class="detail-close">&times;</button>
+    </div>
+    <div id="drawer-list" class="drawer-list"></div>
+    <div class="modal-foot">
+      <button id="export-download" type="button" class="primary">Download proposed.json</button>
+      <button id="export-copy" type="button">Copy JSON</button>
+      <button id="edits-reset" type="button" class="danger">Discard my edits</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
