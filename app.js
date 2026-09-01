@@ -1113,6 +1113,11 @@ function boot() {
 
 // ---------- loading: encrypted bundle, or plaintext for internal/local use ----------
 
+// Data files change whenever the proposal is updated, and they keep the same URL.
+// 'no-cache' still uses the cache but revalidates with the server first (ETag), so a
+// stakeholder can never be shown a stale proposal without knowing it.
+var NOCACHE = { cache: 'no-cache' };
+
 function b64ToBytes(s) {
   var bin = atob(s), out = new Uint8Array(bin.length);
   for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -1188,18 +1193,18 @@ function showLock(enc) {
   });
 }
 
-fetch('data/bundle.enc.json')
+fetch('data/bundle.enc.json', NOCACHE)
   .then(function (r) { return r.ok ? r.json() : null; })
   .catch(function () { return null; })
   .then(function (enc) {
     if (enc) { showLock(enc); return; }
     // No encrypted bundle: internal build, load the plaintext files directly.
     return Promise.all([
-      fetch('data/current.json').then(function (r) {
+      fetch('data/current.json', NOCACHE).then(function (r) {
         if (!r.ok) throw new Error('current.json ' + r.status);
         return r.json();
       }),
-      fetch('data/proposed.json').then(function (r) { return r.ok ? r.json() : null; })
+      fetch('data/proposed.json', NOCACHE).then(function (r) { return r.ok ? r.json() : null; })
         .catch(function () { return null; })
     ]).then(function (res) { startWithData(res[0], res[1]); });
   })
