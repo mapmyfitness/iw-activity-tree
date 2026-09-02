@@ -11,6 +11,7 @@ var S = {
   edits: {},          // my local move overlay,   {id: {parent, why}}
   renames: {},        // my local rename overlay, {id: {name, why}}
   additions: {},      // my local new types,      {tmpId: {name, parent, why}}
+  removedAdditions: {},  // tombstones for published new types I removed, {tmpId: 1}
   trees: {},          // pane -> {byId, roots, childrenOf}
   selected: null,
   movedOnly: false,
@@ -121,6 +122,12 @@ function isEdited(id) {
          Object.prototype.hasOwnProperty.call(S.additions, String(id));
 }
 
+// How many local edits I am carrying, counting removals of published categories.
+function myEditCount() {
+  return Object.keys(S.edits).length + Object.keys(S.renames).length +
+         Object.keys(S.additions).length + Object.keys(S.removedAdditions).length;
+}
+
 // A real type's name as recorded in the database, for before/after display.
 function originalName(id) {
   var n = S.trees.current.byId.get(id);
@@ -155,15 +162,33 @@ function recomputeMoves() {
   S.proposed.renames = r;
 
   var a = {};
-  Object.keys(S.baseAdditions).forEach(function (k) { a[k] = S.baseAdditions[k]; });
-  Object.keys(S.additions).forEach(function (k) { a[k] = S.additions[k]; });
+  Object.keys(S.baseAdditions).forEach(function (k) {
+    if (!S.removedAdditions[k]) a[k] = S.baseAdditions[k];
+  });
+  Object.keys(S.additions).forEach(function (k) {
+    if (!S.removedAdditions[k]) a[k] = S.additions[k];
+  });
   S.proposed.additions = a;
+}
+
+// A new category that came from the published proposal lives only in baseAdditions.
+// Editing it has to copy it into the local overlay first, or the mutation is written to
+// an object that isn't there.
+function localAddition(id) {
+  var k = String(id);
+  if (!Object.prototype.hasOwnProperty.call(S.additions, k)) {
+    var base = S.baseAdditions[k];
+    if (!base) return null;
+    S.additions[k] = { name: base.name, parent: base.parent, why: base.why || '' };
+  }
+  return S.additions[k];
 }
 
 function saveEdits() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(
-      { edits: S.edits, renames: S.renames, additions: S.additions }));
+      { edits: S.edits, renames: S.renames, additions: S.additions,
+        removedAdditions: S.removedAdditions }));
   } catch (e) { toast('Could not save locally: ' + e.message); }
 }
 
@@ -174,15 +199,21 @@ function knownId(id) {
 }
 
 function loadEdits() {
-  var empty = { edits: {}, renames: {}, additions: {} };
+  var empty = { edits: {}, renames: {}, additions: {}, removedAdditions: {} };
   try {
     var raw = localStorage.getItem(LS_KEY);
     if (!raw) return empty;
     var o = JSON.parse(raw);
     if (!o || typeof o !== 'object') return empty;
-    var st = { edits: o.edits || {}, renames: o.renames || {}, additions: o.additions || {} };
-    // Additions load first so moves/renames can legitimately reference them.
+    var st = { edits: o.edits || {}, renames: o.renames || {}, additions: o.additions || {},
+               removedAdditions: o.removedAdditions || {} };
+    // Additions and tombstones load first so moves/renames can reference them.
     S.additions = st.additions;
+    S.removedAdditions = st.removedAdditions;
+    // Drop tombstones for categories the published proposal no longer contains.
+    Object.keys(st.removedAdditions).forEach(function (k) {
+      if (!Object.prototype.hasOwnProperty.call(S.baseAdditions, k)) delete st.removedAdditions[k];
+    });
     Object.keys(st.edits).forEach(function (k) {
       if (!knownId(Number(k))) delete st.edits[k];
       else if (st.edits[k].parent !== null && !knownId(st.edits[k].parent)) delete st.edits[k];
@@ -203,8 +234,10 @@ function setName(id, name, why) {
   if (!name) { toast('A name cannot be empty.'); return false; }
   if (name.length > 120) { toast('That name is too long (120 characters max).'); return false; }
   if (isNew(id)) {
-    S.additions[String(id)].name = name;
-    if (why !== undefined) S.additions[String(id)].why = why;
+    var a = localAddition(id);
+    if (!a) { toast('That category no longer exists.'); return false; }
+    a.name = name;
+    if (why !== undefined) a.why = why;
   } else {
     S.renames[String(id)] = { name: name, why: why || '' };
   }
@@ -236,6 +269,11 @@ function removeAddition(id) {
     return false;
   }
   delete S.additions[String(id)];
+  // If it came from the published proposal, deleting the overlay entry isn't enough —
+  // recomputeMoves would re-add it from baseAdditions. Tombstone it.
+  if (Object.prototype.hasOwnProperty.call(S.baseAdditions, String(id))) {
+    S.removedAdditions[String(id)] = 1;
+  }
   // Any move or rename that pointed at it is now meaningless.
   Object.keys(S.edits).forEach(function (k) {
     if (S.edits[k].parent === id) delete S.edits[k];
@@ -267,8 +305,10 @@ function setParent(id, parent, why) {
   }
   if (isNew(id)) {
     // A new category has no database parent to diff against; store it inline.
-    S.additions[String(id)].parent = parent;
-    if (why) S.additions[String(id)].why = why;
+    var a = localAddition(id);
+    if (!a) { toast('That category no longer exists.'); return false; }
+    a.parent = parent;
+    if (why) a.why = why;
   } else {
     S.edits[String(id)] = { parent: parent, why: why || '' };
   }
@@ -298,8 +338,7 @@ function rebuildProposed() {
 }
 
 function updateChangeCount() {
-  var n = Object.keys(S.edits).length + Object.keys(S.renames).length +
-          Object.keys(S.additions).length;
+  var n = myEditCount();
   var b = document.getElementById('changecount');
   b.textContent = String(n);
   b.classList.toggle('hot', n > 0);
@@ -781,8 +820,7 @@ function renderDrawer() {
   host.textContent = '';
   var moves = S.proposed.moves, renames = S.proposed.renames, adds = S.proposed.additions;
 
-  var mine = Object.keys(S.edits).length + Object.keys(S.renames).length +
-             Object.keys(S.additions).length;
+  var mine = myEditCount();
   document.getElementById('drawer-sub').textContent =
     Object.keys(moves).length + ' moved · ' + Object.keys(renames).length + ' renamed · ' +
     Object.keys(adds).length + ' new · ' + mine +
@@ -950,9 +988,9 @@ function boot() {
     S.baseAdditions = S.proposed.additions || {};
     var st = loadEdits();
     S.edits = st.edits; S.renames = st.renames; S.additions = st.additions;
+    S.removedAdditions = st.removedAdditions;
     rebuildProposed();
-    var mine = Object.keys(S.edits).length + Object.keys(S.renames).length +
-               Object.keys(S.additions).length;
+    var mine = myEditCount();
     if (mine) {
       toast('Restored ' + mine + ' unsaved edit(s) from this browser. ' +
             'Open Changes to review or export.');
@@ -1054,12 +1092,11 @@ function boot() {
     } else { toast('Clipboard unavailable — use Download instead.'); }
   });
   document.getElementById('edits-reset').addEventListener('click', function () {
-    var n = Object.keys(S.edits).length + Object.keys(S.renames).length +
-            Object.keys(S.additions).length;
+    var n = myEditCount();
     if (!n) { toast('You have no edits to discard.'); return; }
     if (!confirm('Discard all ' + n +
                  ' of your local edits and return to the published proposal?')) return;
-    S.edits = {}; S.renames = {}; S.additions = {};
+    S.edits = {}; S.renames = {}; S.additions = {}; S.removedAdditions = {};
     saveEdits();
     rebuildProposed();
     toast('Your edits were discarded.');
